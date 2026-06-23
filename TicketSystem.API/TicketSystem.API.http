@@ -1,0 +1,11 @@
+@TicketSystem.API_HostAddress = http://localhost:5075
+
+GET {{TicketSystem.API_HostAddress}}/todos/
+Accept: application/json
+
+###
+
+GET {{TicketSystem.API_HostAddress}}/todos/1
+Accept: application/json
+
+###

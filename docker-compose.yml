@@ -1,0 +1,103 @@
+services:
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" -b -o /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  ticketsystem.api:
+    image: ${DOCKER_REGISTRY-}ticketsystemapi
+    container_name: ticketsystem.api
+    build:
+      context: .
+      dockerfile: TicketSystem.API/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=portfolio3;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
+      - RabbitMq__Host=rabbitmq
+      - Redis__ConnectionString=redis:6379
+      - Authentication__Google__ClientId=${GOOGLE_CLIENT_ID}
+      - Authentication__Google__ClientSecret=${GOOGLE_CLIENT_SECRET}
+      - Authentication__Google__CallbackPath=/signin-google
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=rsj-api
+      - Jwt__Audience=rsj-blazor
+      - Jwt__DurationInHours=2
+      - OpenAI__ApiKey=${OPENAI_API_KEY}
+      - UI__BaseUrl=${UI_BASE_URL}
+      - Email__SmtpHost=smtp.gmail.com
+      - Email__SmtpPort=587
+      - Email__SenderEmail=${EMAIL_SENDER}
+      - Email__SenderName=Ticket System
+      - Email__Password=${EMAIL_PASSWORD}
+      - Email__AdminEmail=${EMAIL_SENDER}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    restart: on-failure
+
+  ticketsystem.ui:
+    image: ${DOCKER_REGISTRY-}ticketsystemui
+    container_name: ticketsystem.ui
+    build:
+      context: ../TicketSystem.UI
+      dockerfile: Dockerfile
+    ports:
+      - "4200:80"
+    depends_on:
+      - ticketsystem.api
+
+volumes:
+  sqlserver_data:
+  ollama_data:

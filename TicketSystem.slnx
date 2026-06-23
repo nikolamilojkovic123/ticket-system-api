@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Application/">
+    <Project Path="TicketSystem.Application/TicketSystem.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Client/">
+    <Project Path="TicketSystem.Client/TicketSystem.Client.csproj" />
+  </Folder>
+  <Folder Name="/src/Domain/">
+    <Project Path="TicketSystem.Core/TicketSystem.Core.csproj" />
+    <Project Path="TicketSystem.Domain/TicketSystem.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="TicketSystem.Infrastructure.Database/TicketSystem.Infrastructure.Database.csproj" />
+    <Project Path="TicketSystem.Infrastructure/TicketSystem.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Presentation/">
+    <Project Path="TicketSystem.API/TicketSystem.API.csproj" />
+  </Folder>
+  <Folder Name="/test/" />
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="TicketSystem.ServiceDefaults/TicketSystem.ServiceDefaults.csproj" />
+</Solution>

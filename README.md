@@ -9,7 +9,7 @@ Full-stack ticket management system with AI-powered analysis, RAG document Q&A, 
 ## Tech Stack
 
 **Backend:** ASP.NET Core 10 · Clean Architecture · CQRS · FluentValidation  
-**Auth:** Google OAuth 2.0 · JWT Bearer  
+**Auth:** Google OAuth 2.0 · Email/password (register, login, forgot/reset password) · JWT Bearer · Role-based (Admin)  
 **Database:** SQL Server 2022 · Entity Framework Core 10  
 **Messaging:** RabbitMQ (async event bus)  
 **Caching:** Redis + FusionCache (hybrid L1/L2)  
@@ -82,11 +82,13 @@ TicketSystem.Tests                   → Unit tests
 
 ### Auth
 - Google OAuth 2.0 redirect flow → JWT Bearer tokens
+- Email/password registration and login, with forgot/reset password via emailed token
 - Role-based authorization (Admin panel)
 
 ### Dashboard & Admin
 - Summary cards: active, resolved, AI suggestions, average severity
 - Admin panel: per-user stats, resolution rate, average resolution time
+- Admin user management: list all users, change user role
 
 ---
 
@@ -96,21 +98,30 @@ TicketSystem.Tests                   → Unit tests
 |--------|----------|-------------|
 | GET | `/api/auth/google-login` | Initiate Google OAuth |
 | GET | `/api/auth/google-response` | OAuth callback → JWT |
+| POST | `/api/auth/register` | Register with email/password → JWT |
+| POST | `/api/auth/login` | Login with email/password → JWT |
+| POST | `/api/auth/forgot-password` | Request password reset email |
+| POST | `/api/auth/reset-password` | Reset password with emailed token |
 | GET | `/api/ticket` | List tickets (paginated, filterable) |
 | POST | `/api/ticket` | Create ticket → AI enrichment + email |
 | GET | `/api/ticket/{id}` | Get ticket by ID |
 | PUT | `/api/ticket/{id}` | Update ticket |
+| PUT | `/api/ticket/update-status/{id}` | Update ticket status |
 | GET | `/api/ticket/search?q=` | Semantic + keyword search |
 | POST | `/api/ticket/{id}/comments` | Add comment |
 | GET | `/api/ticket/{id}/comments` | List comments |
 | POST | `/api/documents/upload` | Upload + chunk + embed document |
 | GET | `/api/documents` | List documents |
 | POST | `/api/documents/{id}/ask` | RAG Q&A on stored document |
+| POST | `/api/documents/ask` | Upload + ask in one request |
 | POST | `/api/ai/chat` | Chat with OpenAI |
 | GET | `/api/dashboard` | Dashboard stats |
-| GET | `/api/user` | List users |
-| GET | `/api/user/profile` | Current user profile |
-| GET | `/api/user/stats` | User statistics (admin) |
+| GET | `/api/user` | Current user profile |
+| PUT | `/api/user` | Update current user profile |
+| GET | `/api/user/all` | List users |
+| GET | `/api/user/stats` | User statistics |
+| GET | `/api/user/admin/all` | List all users (admin) |
+| PUT | `/api/user/{id}/role` | Change a user's role (admin) |
 
 ---
 
@@ -150,6 +161,19 @@ docker-compose up --build
 | UI | http://localhost:4200 |
 | API / Swagger | http://localhost:5000/swagger |
 | RabbitMQ | http://localhost:15672 |
+
+#### Alternative: infra in Docker, API/UI local
+
+`run-local.ps1` starts only the infrastructure (SQL Server, Redis, RabbitMQ, Ollama) via `docker-compose.infra.yml`, then runs the API and UI directly with `dotnet run` in separate windows — useful for faster edit/debug cycles.
+
+```powershell
+.\run-local.ps1
+```
+
+| Service | URL |
+|---------|-----|
+| API / Swagger | http://localhost:5075/swagger |
+| UI | http://localhost:5057 |
 
 ---
 

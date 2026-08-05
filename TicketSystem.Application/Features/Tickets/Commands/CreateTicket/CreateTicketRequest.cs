@@ -1,8 +1,9 @@
 ﻿using TicketSystem.Application.Mediator;
+using TicketSystem.Core;
 using TicketSystem.Domain.TicketManagment.Enums;
 namespace TicketSystem.Application.Features.Tickets.Commands.CreateTicket;
 
-public class CreateTicketRequest : IRequest<Guid>
+public class CreateTicketRequest : IRequest<Result<CreateTicketResponse>>
 {
     public string Title { get; init; } = default!;
     public string Description { get; init; } = default!;

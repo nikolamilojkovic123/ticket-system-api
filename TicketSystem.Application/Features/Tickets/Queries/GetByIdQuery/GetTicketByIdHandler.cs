@@ -22,7 +22,7 @@ public sealed class GetTicketByIdHandler(ITicketRepository ticketRepository)
         Ticket? entity = await _ticketRepository.GetTicketByIdAsync(request.Id, ct);
         if (entity == null)
         {
-            return Result<TicketResponse>.Fail(Error.None);
+            return Result<TicketResponse>.Fail(ErrorData.None);
         }
 
         return Result<TicketResponse>.Success(new TicketResponse()

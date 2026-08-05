@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TicketSystem.API.Common;
 using TicketSystem.Application.Features.Tickets.Commands.CreateTicket;
 using TicketSystem.Application.Mediator;
+using TicketSystem.Core;
 
 namespace TicketSystem.API.Controllers;
 
@@ -14,16 +16,11 @@ public class ItemController : ControllerBase
     {
         _mediator = simpleMediator;
     }
-    [HttpGet]
-    public async Task<IActionResult> Index()
-    {
-        return Ok();
-    }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTicketRequest createTicketRequest, CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(createTicketRequest, cancellationToken);
-        return Ok(result);
+        Result<CreateTicketResponse> result = await _mediator.Send(createTicketRequest, cancellationToken);
+        return result.ActionResult;
     }
 }

@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
 using TicketSystem.Application.Features.Tickets.Events;
 using TicketSystem.Application.Mediator;
 using TicketSystem.Application.Services;
 using TicketSystem.Application.Services.Email;
+using TicketSystem.Core;
 using TicketSystem.Domain.TicketManagment.Entities;
 using TicketSystem.Domain.TicketManagment.Repositories;
-using System.Diagnostics.CodeAnalysis;
 
 namespace TicketSystem.Application.Features.Tickets.Commands.CreateTicket;
 
@@ -14,19 +15,19 @@ public sealed class CreateTicketRequestHandler(
     IEventBus eventBus,
     IEmailService emailService,
     IOptions<EmailSettings> emailSettings)
-    : IRequestHandler<CreateTicketRequest, Guid>
+    : IRequestHandler<CreateTicketRequest, Result<CreateTicketResponse>>
 {
     private readonly ITicketRepository _ticketRepository = ticketRepository ?? throw new ArgumentNullException(nameof(ticketRepository));
     private readonly IEventBus _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
 
-    public Task<Guid> Handle(CreateTicketRequest request, CancellationToken ct)
+    public Task<Result<CreateTicketResponse>> Handle(CreateTicketRequest request, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         return HandleInnerAsync(request, ct);
     }
 
-    private async Task<Guid> HandleInnerAsync([NotNull] CreateTicketRequest request, CancellationToken ct = default)
+    private async Task<Result<CreateTicketResponse>> HandleInnerAsync([NotNull] CreateTicketRequest request, CancellationToken ct = default)
     {
         Ticket t = new(
                 request.Title,
@@ -51,6 +52,6 @@ public sealed class CreateTicketRequestHandler(
             TicketId = t.Id
         }, ct);
 
-        return t.Id;
+        return Result<CreateTicketResponse>.Success(new CreateTicketResponse { TicketId = t.Id });
     }
 }

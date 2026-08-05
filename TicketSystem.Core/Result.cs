@@ -9,7 +9,7 @@ namespace TicketSystem.Core;
 public class Result
 {
     private static readonly Result _successfulResult = new(true);
-    private readonly ICollection<Error> _errors = [];
+    private readonly ICollection<ErrorData> _errors = [];
 
 
     private Result(bool success)
@@ -17,14 +17,14 @@ public class Result
         IsSuccess = success;
     }
 
-    private Result([NotNull] Error error)
+    private Result([NotNull] ErrorData error)
     {
         ArgumentNullException.ThrowIfNull(error);
         IsSuccess = false;
         _errors.Add(error);
     }
 
-    private Result([NotNull] IReadOnlyCollection<Error> errors)
+    private Result([NotNull] IReadOnlyCollection<ErrorData> errors)
     {
         ArgumentNullException.ThrowIfNull(errors);
         IsSuccess = false;
@@ -36,11 +36,11 @@ public class Result
     }
 
     public bool IsSuccess { get; protected set; }
-    public ImmutableList<Error> Errors => [.. _errors];
+    public ImmutableList<ErrorData> Errors => [.. _errors];
 
     public static Result Success() => _successfulResult;
-    public static Result Fail(Error error) => new(error);
-    public static Result Fail(IReadOnlyCollection<Error> errors) => new(errors);
+    public static Result Fail(ErrorData error) => new(error);
+    public static Result Fail(IReadOnlyCollection<ErrorData> errors) => new(errors);
 
     public static Result operator +(Result left, Result right)
     {
@@ -53,7 +53,7 @@ public class Result
         return Fail(errors);
     }
 
-    public static implicit operator Result(Error error) => Fail(error);
+    public static implicit operator Result(ErrorData error) => Fail(error);
 
     public static bool operator !=(Result left, Result right) => !(left == right);
 

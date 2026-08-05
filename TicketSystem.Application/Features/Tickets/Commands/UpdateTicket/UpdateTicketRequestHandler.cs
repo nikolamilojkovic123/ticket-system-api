@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using TicketSystem.Application.Common.Interfaces;
 using TicketSystem.Application.Features.Tickets.Events;
 using TicketSystem.Application.Mediator;
@@ -5,8 +6,8 @@ using TicketSystem.Application.Services;
 using TicketSystem.Application.Services.Email;
 using TicketSystem.Core;
 using TicketSystem.Domain.TicketManagment.Entities;
+using TicketSystem.Domain.TicketManagment.Enums;
 using TicketSystem.Domain.TicketManagment.Repositories;
-using System.Diagnostics.CodeAnalysis;
 
 namespace TicketSystem.Application.Features.Tickets.Commands.UpdateTicket;
 
@@ -15,23 +16,23 @@ public sealed class UpdateTicketRequestHandler(
     IEventBus eventBus,
     INotificationService notificationService,
     IEmailService emailService)
-    : IRequestHandler<UpdateTicketCommand, Result<bool>>
+    : IRequestHandler<UpdateTicketCommand, Result<UpdateTicketResponse>>
 {
-    public Task<Result<bool>> Handle(UpdateTicketCommand request, CancellationToken ct)
+    public Task<Result<UpdateTicketResponse>> Handle(UpdateTicketCommand request, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         return HandleInnerAsync(request, ct);
     }
 
-    private async Task<Result<bool>> HandleInnerAsync([NotNull] UpdateTicketCommand request, CancellationToken ct = default)
+    private async Task<Result<UpdateTicketResponse>> HandleInnerAsync([NotNull] UpdateTicketCommand request, CancellationToken ct = default)
     {
         Ticket? entity = await ticketRepository.GetTicketByIdAsync(request.Id, ct);
         if (entity is null)
-            return Result<bool>.Fail(Error.None);
+            return Result<UpdateTicketResponse>.Fail(ErrorData.None);
 
         Guid? previousAssigneeId = entity.AssigneeId;
-        var previousStatus = entity.Status;
+        TicketStatus previousStatus = entity.Status;
 
         entity.Update(request.Data.Title, request.Data.Description);
         entity.ChangePriority(request.Data.Priority);
@@ -70,6 +71,9 @@ public sealed class UpdateTicketRequestHandler(
                 entity.Id, entity.Title, request.Data.Status.ToString(), entity.Assignee.Email, ct);
         }
 
-        return Result<bool>.Success(true);
+        return Result<UpdateTicketResponse>.Success(new()
+        {
+            IsSuccess = true
+        });
     }
 }

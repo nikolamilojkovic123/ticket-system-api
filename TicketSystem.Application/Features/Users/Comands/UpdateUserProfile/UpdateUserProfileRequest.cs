@@ -4,7 +4,7 @@ using TicketSystem.Core;
 namespace TicketSystem.Application.Features.Users.Comands.UpdateUserProfile;
 
 public sealed class UpdateUserProfileRequest
-    : IRequest<Result<bool>>
+    : IRequest<Result<UpdateUserProfileResponse>>
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;

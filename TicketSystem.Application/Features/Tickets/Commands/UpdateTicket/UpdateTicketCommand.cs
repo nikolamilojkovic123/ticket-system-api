@@ -4,7 +4,7 @@ using TicketSystem.Core;
 
 namespace TicketSystem.Application.Features.Tickets.Commands.UpdateTicket;
 
-public sealed class UpdateTicketCommand : IRequest<Result<bool>>
+public sealed class UpdateTicketCommand : IRequest<Result<UpdateTicketResponse>>
 {
     public Guid Id { get; init; }
     public CreateTicketRequest Data { get; init; }

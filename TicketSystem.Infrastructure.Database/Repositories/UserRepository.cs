@@ -25,6 +25,14 @@ public sealed class UserRepository(ApplicationDbContext dbContext)
     =>
     await _dbContext.Users.FirstOrDefaultAsync(u => u.GoogleId == googleIdOrMail || u.Email == googleIdOrMail, cancellationToken);
 
+    public async Task<User?> GetUserByIdAsync(Guid id, CancellationToken cancellationToken)
+    =>
+        await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
+    public async Task<User?> GetUserByPasswordResetTokenHashAsync(string tokenHash, CancellationToken cancellationToken)
+    =>
+        await _dbContext.Users.FirstOrDefaultAsync(u => u.PasswordResetTokenHash == tokenHash, cancellationToken);
+
     public async Task<ICollection<User>> GetUsers(CancellationToken cancellationToken)
     =>
         await _dbContext

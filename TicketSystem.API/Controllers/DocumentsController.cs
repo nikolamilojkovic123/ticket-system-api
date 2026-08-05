@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using TicketSystem.API.Common;
 using TicketSystem.Application.Features.Documents;
 using TicketSystem.Application.Features.Documents.Ask;
 using TicketSystem.Application.Features.Documents.GetDocuments;
@@ -18,35 +19,30 @@ public class DocumentsController(SimpleMediator simpleMediator) : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload([FromForm] IFormFile file)
     {
-        if (file == null || file.Length == 0)
-            return BadRequest("Fajl nije prosleđen ili je prazan.");
-
         using Stream fileStream = file.OpenReadStream();
-        Result<Guid> result = await _mediator.Send(new UploadDocumentCommand(fileStream, file.FileName));
+        Result<UploadDocumentResponse> result = await _mediator.Send(new UploadDocumentCommand(fileStream, file.FileName));
 
         if (!result.IsSuccess)
             return BadRequest(result.Errors);
 
-        return Ok(new { documentId = result.Data });
+        return Ok(new { documentId = result.Data!.DocumentId });
     }
 
     [HttpPost("{documentId:guid}/ask")]
     public async Task<IActionResult> AskStored(Guid documentId, [FromBody] AskStoredRequest request)
     {
         Result<DocumentAudioResponseDto> result = await _mediator.Send(
-            new AskStoredDocumentCommand(documentId, request.Question, request.Language));
+            new AskStoredDocumentCommand(documentId, request.Question, request.Voice));
 
-        if (!result.IsSuccess)
-            return BadRequest(result.Errors);
-
-        return Ok(result.Data);
+        return result.ActionResult;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         Result<ICollection<DocumentListItemDto>> result = await _mediator.Send(new GetDocumentsQuery());
-        return Ok(result.Data);
+
+        return result.ActionResult;
     }
 
     [HttpPost("ask")]
@@ -54,15 +50,13 @@ public class DocumentsController(SimpleMediator simpleMediator) : ControllerBase
     public async Task<IActionResult> AskDocument(
         [FromForm] IFormFile file,
         [FromForm] string question,
-        [FromForm] string language)
+        [FromForm] string voice)
     {
-        if (file == null || file.Length == 0)
-            return BadRequest("Fajl nije prosleđen ili je prazan.");
-
         using Stream fileStream = file.OpenReadStream();
-        AskDocumentCommand command = new(fileStream, file.FileName, question, language);
+        AskDocumentCommand command = new(fileStream, file.FileName, question, voice);
         Result<DocumentAudioResponseDto> result = await _mediator.Send(command);
-        return Ok(result);
+
+        return result.ActionResult;
     }
 }
 

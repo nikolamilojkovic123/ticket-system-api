@@ -15,11 +15,11 @@ public sealed class AskStoredDocumentHandler(
     public async Task<Result<DocumentAudioResponseDto>> Handle(AskStoredDocumentCommand request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Question))
-            return Result<DocumentAudioResponseDto>.Fail(new Error("Validation.EmptyQuestion", "Pitanje ne može biti prazno."));
+            return Result<DocumentAudioResponseDto>.Fail(new ErrorData("Validation.EmptyQuestion", "Pitanje ne može biti prazno."));
 
         Document? document = await documentRepository.GetByIdWithChunksAsync(request.DocumentId, ct);
         if (document is null)
-            return Result<DocumentAudioResponseDto>.Fail(new Error("Document.NotFound", "Dokument nije pronađen."));
+            return Result<DocumentAudioResponseDto>.Fail(new ErrorData("Document.NotFound", "Dokument nije pronađen."));
 
         IEnumerable<(string Content, float[] Embedding)> chunks = document.Chunks
             .Where(c => c.GetEmbedding() != null)
@@ -29,7 +29,7 @@ public sealed class AskStoredDocumentHandler(
         if (!ragResult.IsSuccess || ragResult.Data is null)
             return Result<DocumentAudioResponseDto>.Fail(ragResult.Errors);
 
-        string audioBase64 = await ttsService.ConvertTextToSpeechBase64Async(ragResult.Data, request.Language);
+        string audioBase64 = await ttsService.ConvertTextToSpeechBase64Async(ragResult.Data, request.Voice);
 
         return Result<DocumentAudioResponseDto>.Success(new DocumentAudioResponseDto
         {

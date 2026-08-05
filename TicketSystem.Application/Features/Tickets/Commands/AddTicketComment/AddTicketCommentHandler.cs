@@ -23,7 +23,7 @@ public sealed class AddTicketCommentHandler(ITicketRepository ticketRepository)
         Ticket? ticket = await _ticketRepository.GetTicketByIdAsync(request.TicketId, ct);
         if (ticket == null)
         {
-            return Result<TicketCommentResponse>.Fail(Error.None);
+            return Result<TicketCommentResponse>.Fail(ErrorData.None);
         }
 
         TicketComment comment = new(request.TicketId, request.Author, request.Content);

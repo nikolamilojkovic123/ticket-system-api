@@ -11,16 +11,16 @@ public sealed class UploadDocumentHandler(
     IDocumentRepository documentRepository,
     IRagService ragService,
     IEmbeddingGenerator embeddingGenerator)
-    : IRequestHandler<UploadDocumentCommand, Result<Guid>>
+    : IRequestHandler<UploadDocumentCommand, Result<UploadDocumentResponse>>
 {
-    public async Task<Result<Guid>> Handle(UploadDocumentCommand request, CancellationToken ct)
+    public async Task<Result<UploadDocumentResponse>> Handle(UploadDocumentCommand request, CancellationToken ct)
     {
         if (request.FileStream == null || request.FileStream.Length == 0)
-            return Result<Guid>.Fail(new Error("Upload.EmptyFile", "Fajl je prazan."));
+            return Result<UploadDocumentResponse>.Fail(new ErrorData("Upload.EmptyFile", "File is empty"));
 
         string fullText = await ragService.ExtractTextAsync(request.FileStream, request.FileName);
         if (string.IsNullOrWhiteSpace(fullText))
-            return Result<Guid>.Fail(new Error("Upload.EmptyContent", "Dokument ne sadrži tekst."));
+            return Result<UploadDocumentResponse>.Fail(new ErrorData("Upload.EmptyContent", "Document doesn't has a text"));
 
         List<string> chunks = ragService.ChunkText(fullText);
 
@@ -36,6 +36,9 @@ public sealed class UploadDocumentHandler(
 
         await documentRepository.SaveAsync(document, ct);
 
-        return Result<Guid>.Success(document.Id);
+        return Result<UploadDocumentResponse>.Success(new()
+        {
+            DocumentId = document.Id
+        });
     }
 }

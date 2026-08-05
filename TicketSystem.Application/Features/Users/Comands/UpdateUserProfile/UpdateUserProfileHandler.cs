@@ -6,22 +6,22 @@ using TicketSystem.Domain.UserManagment.Repositories;
 namespace TicketSystem.Application.Features.Users.Comands.UpdateUserProfile;
 
 public sealed class UpdateUserProfileHandler(IUserRepository userRepository)
-    : IRequestHandler<UpdateUserProfileRequest, Result<bool>>
+    : IRequestHandler<UpdateUserProfileRequest, Result<UpdateUserProfileResponse>>
 {
     private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-    public Task<Result<bool>> Handle(UpdateUserProfileRequest request, CancellationToken ct)
+    public Task<Result<UpdateUserProfileResponse>> Handle(UpdateUserProfileRequest request, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         return HandleInnerAsync(request, ct);
     }
 
-    private async Task<Result<bool>> HandleInnerAsync(UpdateUserProfileRequest request, CancellationToken ct)
+    private async Task<Result<UpdateUserProfileResponse>> HandleInnerAsync(UpdateUserProfileRequest request, CancellationToken ct)
     {
         User? user = await _userRepository.GetUserByEmailAsync(request.Email, ct);
 
         if (user is null)
-            return Result<bool>.Fail(Error.None);
+            return Result<UpdateUserProfileResponse>.Fail(ErrorData.None);
 
         user.UpdateProfile(
             request.FirstName,
@@ -36,6 +36,9 @@ public sealed class UpdateUserProfileHandler(IUserRepository userRepository)
         }
         await _userRepository.UpdateAsync(user, ct);
 
-        return Result<bool>.Success(true);
+        return Result<UpdateUserProfileResponse>.Success(new()
+        {
+            IsSuccess = true,
+        });
     }
 }

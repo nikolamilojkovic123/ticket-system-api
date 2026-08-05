@@ -7,4 +7,4 @@ public sealed record AskDocumentCommand(
     Stream FileStream,
     string FileName,
     string Question,
-    string Language) : IRequest<Result<DocumentAudioResponseDto>>;
+    string Voice) : IRequest<Result<DocumentAudioResponseDto>>;

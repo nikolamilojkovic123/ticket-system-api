@@ -5,7 +5,7 @@ namespace TicketSystem.Core;
 
 public sealed class Result<T>
 {
-    private readonly ICollection<Error> _errors = [];
+    private readonly ICollection<ErrorData> _errors = [];
 
     private Result(bool success, T data)
     {
@@ -13,7 +13,7 @@ public sealed class Result<T>
         Data = data;
     }
 
-    private Result([NotNull] IReadOnlyCollection<Error> errors)
+    private Result([NotNull] IReadOnlyCollection<ErrorData> errors)
     {
         ArgumentNullException.ThrowIfNull(errors);
         IsSuccess = false;
@@ -24,7 +24,7 @@ public sealed class Result<T>
         }
     }
 
-    private Result([NotNull] Error error)
+    private Result([NotNull] ErrorData error)
     {
         ArgumentNullException.ThrowIfNull(error);
         IsSuccess = false;
@@ -32,7 +32,7 @@ public sealed class Result<T>
     }
 
     public bool IsSuccess { get; private set; }
-    public ImmutableList<Error> Errors => [.. _errors];
+    public ImmutableList<ErrorData> Errors => [.. _errors];
     public T? Data { get; private set; }
 
     public static Result<T> Success([NotNull] T data)
@@ -41,8 +41,8 @@ public sealed class Result<T>
         return new Result<T>(true, data);
     }
 
-    public static Result<T> Fail(Error error) => new(error);
-    public static Result<T> Fail(IReadOnlyCollection<Error> errors) => new(errors);
+    public static Result<T> Fail(ErrorData error) => new(error);
+    public static Result<T> Fail(IReadOnlyCollection<ErrorData> errors) => new(errors);
 
     public static Result<T> operator +(Result<T> left, Result<T> right)
     {
@@ -67,7 +67,7 @@ public sealed class Result<T>
 
     public static implicit operator Result<T>(T data) => Success(data);
 
-    public static implicit operator Result<T>(Error error) => Fail(error);
+    public static implicit operator Result<T>(ErrorData error) => Fail(error);
 
     public static bool operator !=(Result<T> left, Result<T> right) => !(left == right);
 

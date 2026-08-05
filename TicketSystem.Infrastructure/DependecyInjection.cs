@@ -1,10 +1,14 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RabbitMQ.Client;
 using TicketSystem.Application.Common.Interfaces;
 using TicketSystem.Application.Services;
+using TicketSystem.Application.Services.Admin;
 using TicketSystem.Application.Services.AI;
 using TicketSystem.Application.Services.Email;
+using TicketSystem.Application.Services.Ui;
+using TicketSystem.Domain.UserManagment.Entities;
 using TicketSystem.Infrastructure.ExternalServices;
 using TicketSystem.Infrastructure.Messaging.Consumers;
 using TicketSystem.Infrastructure.Messaging.Listeners;
@@ -55,6 +59,11 @@ public static class DependencyInjection
 
         services.Configure<EmailSettings>(config.GetSection(EmailSettings.SectionName));
         services.AddScoped<IEmailService, EmailService>();
+
+        services.Configure<AdminSettings>(config.GetSection(AdminSettings.SectionName));
+        services.Configure<UiSettings>(config.GetSection(UiSettings.SectionName));
+
+        services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
         return services;
     }

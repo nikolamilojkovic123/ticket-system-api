@@ -24,7 +24,7 @@ public class UserProfileHandler(IUserRepository userRepository)
         User? user = await _userRepository.GetUserByEmailAsync(request.email, ct);
 
         if (user is null)
-            return Result<UserProfileResponse>.Fail(Error.None);
+            return Result<UserProfileResponse>.Fail(ErrorData.None);
 
         UserProfileResponse result = new()
         {

@@ -1,4 +1,5 @@
 ﻿using TicketSystem.Domain.TicketManagment.Entities;
+using TicketSystem.Domain.UserManagment.Enums;
 
 namespace TicketSystem.Domain.UserManagment.Entities;
 
@@ -17,6 +18,10 @@ public sealed class User
     public bool IsActive { get; private set; }
     public string? Expertise { get; set; }
     public List<Ticket> AssignedTickets { get; private set; } = new();
+    public UserRole UserRole { get; private set; }
+    public string? PasswordHash { get; private set; }
+    public string? PasswordResetTokenHash { get; private set; }
+    public DateTime? PasswordResetTokenExpiresAt { get; private set; }
 
     private User() { }
 
@@ -32,6 +37,7 @@ public sealed class User
         IsActive = true;
         PhoneNumber = string.Empty;
         Expertise = expertise;
+        UserRole = UserRole.User;
     }
 
     public void SetPhone(string phone)
@@ -60,5 +66,29 @@ public sealed class User
     {
         IsActive = isActive;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public User SetUserRole(UserRole userRole)
+    {
+        UserRole = userRole;
+        return this;
+    }
+
+    public void SetPassword(string passwordHash)
+    {
+        PasswordHash = passwordHash;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetPasswordResetToken(string tokenHash, DateTime expiresAt)
+    {
+        PasswordResetTokenHash = tokenHash;
+        PasswordResetTokenExpiresAt = expiresAt;
+    }
+
+    public void ClearPasswordResetToken()
+    {
+        PasswordResetTokenHash = null;
+        PasswordResetTokenExpiresAt = null;
     }
 }

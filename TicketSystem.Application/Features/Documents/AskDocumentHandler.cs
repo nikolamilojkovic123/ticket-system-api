@@ -16,13 +16,13 @@ public sealed class AskDocumentHandler(IRagService ragService, ITextToSpeechServ
         // Validacija pitanja
         if (string.IsNullOrWhiteSpace(request.Question))
         {
-            return Result<DocumentAudioResponseDto>.Fail(new Error("Validation.EmptyQuestion", "Pitanje ne može biti prazno."));
+            return Result<DocumentAudioResponseDto>.Fail(new ErrorData("Validation.EmptyQuestion", "Pitanje ne može biti prazno."));
         }
 
         // Validacija strima fajla
         if (request.FileStream == null || request.FileStream.Length == 0)
         {
-            return Result<DocumentAudioResponseDto>.Fail(new Error("Validation.EmptyFile", "Učitani fajl je prazan ili nepostojeći."));
+            return Result<DocumentAudioResponseDto>.Fail(new ErrorData("Validation.EmptyFile", "Učitani fajl je prazan ili nepostojeći."));
         }
 
         // 2. Pozivamo tvoj postojeći RAG servis koji vraća Result<string> (tekst od Llame)
@@ -34,13 +34,13 @@ public sealed class AskDocumentHandler(IRagService ragService, ITextToSpeechServ
         // Ako lokalni RAG/Llama vrati grešku, odmah je prosleđujemo nazad bez pozivanja OpenAI-ja
         if (!ragResult.IsSuccess || ragResult.Data == null)
         {
-            return Result<DocumentAudioResponseDto>.Fail(new Error("Validation.EmptyFile", "Učitani fajl je prazan ili nepostojeći."));
+            return Result<DocumentAudioResponseDto>.Fail(new ErrorData("Validation.EmptyFile", "Učitani fajl je prazan ili nepostojeći."));
         }
 
         string llamaTextResponse = ragResult.Data;
 
         // 3. NOVI DEO: Pozivamo tvoj TextToSpeechService da pretvori tekst Llame u audio bajtove
-        string audioBase64 = await _ttsService.ConvertTextToSpeechBase64Async(llamaTextResponse, request.Language);
+        string audioBase64 = await _ttsService.ConvertTextToSpeechBase64Async(llamaTextResponse, request.Voice);
 
         // 4. Pakujemo oba odgovora u zajednički DTO
         DocumentAudioResponseDto combinedData = new()

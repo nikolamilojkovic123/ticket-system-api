@@ -28,7 +28,7 @@ public sealed class OllamaRagService : IRagService
         {
             string fullText = await ExtractTextAsync(fileStream, fileName);
             if (string.IsNullOrWhiteSpace(fullText))
-                return Result<string>.Fail(new Error("RAG.EmptyDocument", "Dokument je prazan ili nečitljiv."));
+                return Result<string>.Fail(new ErrorData("RAG.EmptyDocument", "Dokument je prazan ili nečitljiv."));
 
             List<string> chunks = ChunkText(fullText);
 
@@ -42,7 +42,7 @@ public sealed class OllamaRagService : IRagService
         }
         catch (Exception ex)
         {
-            return Result<string>.Fail(new Error("RAG.ExecutionError", ex.Message));
+            return Result<string>.Fail(new ErrorData("RAG.ExecutionError", ex.Message));
         }
     }
 
@@ -66,7 +66,7 @@ public sealed class OllamaRagService : IRagService
         }
         catch (Exception ex)
         {
-            return Result<string>.Fail(new Error("RAG.ExecutionError", ex.Message));
+            return Result<string>.Fail(new ErrorData("RAG.ExecutionError", ex.Message));
         }
     }
 

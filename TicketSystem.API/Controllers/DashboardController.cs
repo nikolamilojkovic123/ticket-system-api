@@ -6,7 +6,7 @@ namespace TicketSystem.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class DashboardController(SimpleMediator simpleMediator) : Controller
+public class DashboardController(SimpleMediator simpleMediator) : ControllerBase
 {
     private readonly SimpleMediator _mediator = simpleMediator ?? throw new ArgumentNullException(nameof(simpleMediator));
 

@@ -12,7 +12,12 @@ public class TextToSpeechService(IConfiguration configuration, IHttpClientFactor
     private readonly IConfiguration _configuration = configuration;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
-    public async Task<string> ConvertTextToSpeechBase64Async(string text, string language)
+    private static readonly HashSet<string> SupportedVoices = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "alloy", "echo", "fable", "onyx", "nova", "shimmer"
+    };
+
+    public async Task<string> ConvertTextToSpeechBase64Async(string text, string voice)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
@@ -25,12 +30,7 @@ public class TextToSpeechService(IConfiguration configuration, IHttpClientFactor
         using HttpClient client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
-        string chosenVoice = language.ToLower() switch
-        {
-            "sr" => "onyx",
-            "en" => "alloy",
-            _ => "onyx"
-        };
+        string chosenVoice = SupportedVoices.Contains(voice) ? voice.ToLower() : "onyx";
 
         var payload = new
         {

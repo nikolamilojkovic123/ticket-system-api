@@ -5,6 +5,8 @@ namespace TicketSystem.Domain.UserManagment.Repositories;
 public interface IUserRepository
 {
     Task<User?> GetUserByGoogleIdOrMailAsync(string googleIdOrMail, CancellationToken cancellationToken);
+    Task<User?> GetUserByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<User?> GetUserByPasswordResetTokenHashAsync(string tokenHash, CancellationToken cancellationToken);
     Task CreateUserAsync(User user, CancellationToken cancellationToken);
     Task UpdateAsync(User user, CancellationToken cancellationToken);
     Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken);

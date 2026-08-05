@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using TicketSystem.API.Common;
 using TicketSystem.Application.Common.Models;
 using TicketSystem.Application.Features.Tickets.Commands.AddTicketComment;
 using TicketSystem.Application.Features.Tickets.Commands.CreateTicket;
 using TicketSystem.Application.Features.Tickets.Commands.UpdateTicket;
+using TicketSystem.Application.Features.Tickets.Commands.UpdateTicketStatus;
 using TicketSystem.Application.Features.Tickets.Dtos;
 using TicketSystem.Application.Features.Tickets.Queries.GetAllTicketsQuery;
 using TicketSystem.Application.Features.Tickets.Queries.GetByIdQuery;
@@ -13,7 +16,6 @@ using TicketSystem.Application.Features.Tickets.Queries.SearchTickets;
 using TicketSystem.Application.Mediator;
 using TicketSystem.Core;
 using TicketSystem.Domain.TicketManagment.Enums;
-using System.Security.Claims;
 
 namespace TicketSystem.API.Controllers;
 
@@ -27,9 +29,9 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateTicketAsync([FromBody] CreateTicketRequest createTicketRequest, CancellationToken cancellationToken)
     {
-        Guid result = await _mediator.Send(createTicketRequest, cancellationToken);
+        Result<CreateTicketResponse> result = await _mediator.Send(createTicketRequest, cancellationToken);
 
-        return Ok(result);
+        return result.ActionResult;
     }
 
     [HttpGet("{id:Guid}")]
@@ -37,7 +39,7 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
     {
         Result<TicketResponse> result = await _mediator.Send(new GetTicketByIdQuery(id), cancellationToken);
 
-        return Ok(result);
+        return result.ActionResult;
     }
 
     [HttpGet]
@@ -74,6 +76,7 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
         }
 
         PagedResult<TicketResponse> result = await _mediator.Send(new GetTicketsQuery(page, pageSize), cancellationToken);
+
         return Ok(result);
     }
 
@@ -81,12 +84,12 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
     public async Task<IActionResult> UpdateTicketAsync(Guid id,
         [FromBody] CreateTicketRequest createTicketRequest, CancellationToken cancellationToken)
     {
-        Result<bool> result = await _mediator.Send(new UpdateTicketCommand(id, createTicketRequest), cancellationToken);
-        return Ok(result);
+        Result<UpdateTicketResponse> result = await _mediator.Send(new UpdateTicketCommand(id, createTicketRequest), cancellationToken);
+        return result.ActionResult;
     }
 
     [HttpGet("search")]
-    public async Task<ActionResult<PagedResult<TicketResponse>>> Search(
+    public async Task<IActionResult> Search(
        [FromQuery] string query,
        [FromQuery] int page = 1,
        [FromQuery] int pageSize = 10,
@@ -100,7 +103,7 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
                     pageSize),
                 cancellationToken);
 
-        return Ok(result);
+        return result.ActionResult;
     }
 
     [HttpPost("{id:guid}/comments")]
@@ -112,7 +115,7 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
         Result<TicketCommentResponse> result = await _mediator.Send(
             new AddTicketCommentCommand(id, author, body.Content), cancellationToken);
 
-        return Ok(result);
+        return result.ActionResult;
     }
 
     [HttpGet("{id:guid}/comments")]
@@ -121,6 +124,16 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
         Result<ICollection<TicketCommentResponse>> result = await _mediator.Send(
             new GetTicketCommentsQuery(id), cancellationToken);
 
-        return Ok(result);
+        return result.ActionResult;
+    }
+    [HttpPut("update-status/{id:guid}")]
+    public async Task<IActionResult> UpdateTicketStatusAsync(Guid id,
+        [FromBody] UpdateStatusRequest request, CancellationToken cancellationToken)
+    {
+        Result<UpdateTicketStatusResponse> result = await _mediator.Send(
+            new UpdateTicketStatusCommand(id, request.Status), cancellationToken);
+        return result.ActionResult;
     }
 }
+
+

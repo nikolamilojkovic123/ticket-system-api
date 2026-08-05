@@ -1,9 +1,17 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using TicketSystem.Application.Features.Users.Comands.ForgotPassword;
+using TicketSystem.Application.Features.Users.Comands.LoginUser;
+using TicketSystem.Application.Features.Users.Comands.RegisterUser;
+using TicketSystem.Application.Features.Users.Comands.ResetPassword;
 using TicketSystem.Application.Features.Users.Comands.UpsertGoogleUser;
+using TicketSystem.Application.Features.Users.Common;
 using TicketSystem.Application.Mediator;
+using TicketSystem.Core;
+using TicketSystem.Domain.UserManagment.Enums;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -48,7 +56,7 @@ public class AuthController(SimpleMediator simpleMediator, IConfiguration config
         if (string.IsNullOrEmpty(email))
             return BadRequest("Email not found");
 
-        Guid userId = await _mediator.Send(new UpsertGoogleUserCommand
+        Result<AuthResult> upsertResult = await _mediator.Send(new UpsertGoogleUserCommand
         {
             Email = email,
             FirstName = firstName ?? "Unknown",
@@ -57,24 +65,69 @@ public class AuthController(SimpleMediator simpleMediator, IConfiguration config
             ProfilePictureUrl = pictureUrl
         });
 
-        string? name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
+        string uiBaseUrl = _configuration["UI:BaseUrl"] ?? "http://localhost:4200";
 
-        if (string.IsNullOrEmpty(email))
-            return BadRequest("Email not found");
+        if (!upsertResult.IsSuccess || upsertResult.Data is null)
+        {
+            return Redirect($"{uiBaseUrl}/login-error?reason=google-email-taken");
+        }
 
+        string jwt = GenerateJwt(upsertResult.Data);
+
+        return Redirect($"{uiBaseUrl}/login-callback?token={jwt}");
+    }
+
+    [HttpPost("register")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Register([FromBody] RegisterUserCommand request, CancellationToken cancellationToken)
+    {
+        Result<AuthResult> result = await _mediator.Send(request, cancellationToken);
+
+        if (!result.IsSuccess || result.Data is null)
+            return Ok(new AuthApiResponse(false, result.Errors.FirstOrDefault()?.Message, null));
+
+        return Ok(new AuthApiResponse(true, null,
+            new AuthTokenResponse(GenerateJwt(result.Data), result.Data.UserId, result.Data.Role)));
+    }
+
+    [HttpPost("login")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Login([FromBody] LoginUserCommand request, CancellationToken cancellationToken)
+    {
+        Result<AuthResult> result = await _mediator.Send(request, cancellationToken);
+
+        if (!result.IsSuccess || result.Data is null)
+            return Ok(new AuthApiResponse(false, result.Errors.FirstOrDefault()?.Message, null));
+
+        return Ok(new AuthApiResponse(true, null,
+            new AuthTokenResponse(GenerateJwt(result.Data), result.Data.UserId, result.Data.Role)));
+    }
+
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand request, CancellationToken cancellationToken)
+    {
+        Result<bool> result = await _mediator.Send(request, cancellationToken);
+        return Ok(new AuthApiResponse(result.IsSuccess, result.Errors.FirstOrDefault()?.Message, null));
+    }
+
+    [HttpPost("reset-password")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand request, CancellationToken cancellationToken)
+    {
+        Result<bool> result = await _mediator.Send(request, cancellationToken);
+        return Ok(new AuthApiResponse(result.IsSuccess, result.Errors.FirstOrDefault()?.Message, null));
+    }
+
+    private string GenerateJwt(AuthResult authResult)
+    {
         List<Claim> claims = new()
         {
-            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-            new Claim(ClaimTypes.Email, email),
-            new Claim(ClaimTypes.Name, name ?? email)
+            new Claim(ClaimTypes.NameIdentifier, authResult.UserId.ToString()),
+            new Claim(ClaimTypes.Email, authResult.Email),
+            new Claim(ClaimTypes.Name, authResult.FullName),
+            new Claim("role", authResult.Role.ToString())
         };
-
-        string? adminEmail = _configuration["AdminSettings:AdminEmail"];
-        if (!string.IsNullOrWhiteSpace(adminEmail) &&
-            email.Equals(adminEmail, StringComparison.OrdinalIgnoreCase))
-        {
-            claims.Add(new Claim("role", "Admin"));
-        }
 
         SymmetricSecurityKey key = new(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
 
@@ -91,9 +144,10 @@ public class AuthController(SimpleMediator simpleMediator, IConfiguration config
             signingCredentials: creds
         );
 
-        string jwt = new JwtSecurityTokenHandler().WriteToken(token);
-
-        string uiBaseUrl = _configuration["UI:BaseUrl"] ?? "http://localhost:4200";
-        return Redirect($"{uiBaseUrl}/login-callback?token={jwt}");
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
+
+public sealed record AuthTokenResponse(string Token, Guid UserId, UserRole Role);
+
+public sealed record AuthApiResponse(bool Success, string? ErrorMessage, AuthTokenResponse? Data);

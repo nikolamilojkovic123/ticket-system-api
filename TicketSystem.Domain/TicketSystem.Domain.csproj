@@ -13,7 +13,6 @@
   <ItemGroup>
     <Folder Include="ChatMessageManagement\Enums\" />
     <Folder Include="ConversationManagement\Enums\" />
-    <Folder Include="UserManagment\Enums\" />
   </ItemGroup>
 
   <ItemGroup>

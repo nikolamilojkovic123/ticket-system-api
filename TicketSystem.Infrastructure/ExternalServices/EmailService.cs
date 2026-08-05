@@ -57,6 +57,19 @@ internal sealed class EmailService : IEmailService
         return SendEmailAsync(recipientEmail, subject, body, ct);
     }
 
+    public Task SendPasswordResetAsync(string recipientEmail, string resetLink, CancellationToken ct = default)
+    {
+        string subject = "Reset lozinke";
+        string body = $"""
+            <h2>Zahtev za reset lozinke</h2>
+            <p>Kliknite na link ispod da postavite novu lozinku. Link važi 1 sat.</p>
+            <p><a href="{HtmlEncode(resetLink)}">{HtmlEncode(resetLink)}</a></p>
+            <p>Ako niste vi tražili reset lozinke, slobodno ignorišite ovaj mejl.</p>
+            """;
+
+        return SendEmailAsync(recipientEmail, subject, body, ct);
+    }
+
     private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(_settings.SmtpHost) || string.IsNullOrWhiteSpace(_settings.SenderEmail))

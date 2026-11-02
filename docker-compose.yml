@@ -70,12 +70,14 @@ services:
       - Jwt__DurationInHours=2
       - OpenAI__ApiKey=${OPENAI_API_KEY}
       - UI__BaseUrl=${UI_BASE_URL}
+      - Cors__AllowedOrigins__0=${UI_BASE_URL}
       - Email__SmtpHost=smtp.gmail.com
       - Email__SmtpPort=587
       - Email__SenderEmail=${EMAIL_SENDER}
       - Email__SenderName=Ticket System
       - Email__Password=${EMAIL_PASSWORD}
       - Email__AdminEmail=${EMAIL_SENDER}
+      - Swagger__Enabled=true
     depends_on:
       sqlserver:
         condition: service_healthy

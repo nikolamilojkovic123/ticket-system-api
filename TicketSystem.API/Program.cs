@@ -51,7 +51,11 @@ if (!string.IsNullOrWhiteSpace(redisConnectionString))
 fusionCacheBuilder.AsHybridCache();
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<TicketSystem.API.OpenApi.BearerSecuritySchemeTransformer>();
+    options.AddOperationTransformer<TicketSystem.API.OpenApi.BearerSecuritySchemeTransformer>();
+});
 
 builder.Services.AddValidatorsFromAssembly(typeof(TicketSystem.Application.DependencyInjection).Assembly);
 builder.Services.AddFluentValidationAutoValidation();
@@ -73,13 +77,16 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
+string[] allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("Frontend", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -147,7 +154,8 @@ using (IServiceScope scope = app.Services.CreateScope())
 
 app.MapDefaultEndpoints();
 
-if (app.Environment.IsDevelopment())
+// Always on in Development; elsewhere (e.g. Docker) opt in with Swagger__Enabled=true.
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.MapOpenApi();
     app.UseSwaggerUI(options =>
@@ -158,7 +166,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-app.UseCors("AllowAll");
+app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

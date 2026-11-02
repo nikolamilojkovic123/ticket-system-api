@@ -1,4 +1,5 @@
-﻿using TicketSystem.Application.Features.Chat;
+﻿using Microsoft.Extensions.Logging;
+using TicketSystem.Application.Features.Chat;
 using TicketSystem.Domain.TicketManagment.Entities;
 using TicketSystem.Domain.TicketManagment.Repositories;
 using System.Text.Json;
@@ -8,7 +9,8 @@ namespace TicketSystem.Application.Services.AI;
 public sealed class TicketAiService(
     IOpenAiService openAiService,
     ITicketRepository ticketRepository,
-    IEmbeddingGenerator embeddingGenerator)
+    IEmbeddingGenerator embeddingGenerator,
+    ILogger<TicketAiService> logger)
     : ITicketAiService
 {
     private readonly IOpenAiService _openAi = openAiService
@@ -18,6 +20,9 @@ public sealed class TicketAiService(
         ?? throw new ArgumentNullException(nameof(ticketRepository));
     private readonly IEmbeddingGenerator _embeddingGenerator = embeddingGenerator
         ?? throw new ArgumentNullException(nameof(embeddingGenerator));
+    private readonly ILogger<TicketAiService> _logger = logger
+        ?? throw new ArgumentNullException(nameof(logger));
+
     public async Task<bool?> EnrichTicketAsync(Guid ticketId, CancellationToken ct = default)
     {
         Ticket? ticket = await _ticketRepository.GetTicketByIdAsync(ticketId, ct);
@@ -25,6 +30,13 @@ public sealed class TicketAiService(
         if (ticket == null)
         {
             return null;
+        }
+
+        if (ticket.AiSummary != null)
+        {
+            _logger.LogInformation(
+                "Ticket {TicketId} is already enriched, skipping duplicate processing", ticketId);
+            return true;
         }
 
         ICollection<AiMessage> messages = BuildMessages(ticket);

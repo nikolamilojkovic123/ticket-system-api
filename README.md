@@ -152,9 +152,19 @@ EMAIL_SENDER=your_email@gmail.com
 EMAIL_PASSWORD=your_gmail_app_password
 ```
 
-```bash
-docker-compose up --build
+#### `start.ps1` — pick Docker or local each time
+
+`start.ps1` is a single entry point that lets you choose the mode interactively, or via `-Mode`:
+
+```powershell
+.\start.ps1                 # interactive menu
+.\start.ps1 -Mode docker    # everything in Docker
+.\start.ps1 -Mode local     # infra in Docker, API/UI local
+.\start.ps1 -Mode docker -Stop
+.\start.ps1 -Mode local -Stop
 ```
+
+**Docker mode** — full stack (SQL Server, Redis, RabbitMQ, Ollama, API, UI) via `docker-compose.yml`:
 
 | Service | URL |
 |---------|-----|
@@ -162,18 +172,14 @@ docker-compose up --build
 | API / Swagger | http://localhost:5000/swagger |
 | RabbitMQ | http://localhost:15672 |
 
-#### Alternative: infra in Docker, API/UI local
-
-`run-local.ps1` starts only the infrastructure (SQL Server, Redis, RabbitMQ, Ollama) via `docker-compose.infra.yml`, then runs the API and UI directly with `dotnet run` in separate windows — useful for faster edit/debug cycles.
-
-```powershell
-.\run-local.ps1
-```
+**Local mode** — only infra (SQL Server, Redis, RabbitMQ, Ollama) via `docker-compose.infra.yml`, API and UI run directly with `dotnet run` in separate windows (`run-local.ps1`) — useful for faster edit/debug cycles:
 
 | Service | URL |
 |---------|-----|
 | API / Swagger | http://localhost:5075/swagger |
 | UI | http://localhost:5057 |
+
+You can still call `docker compose up --build` or `.\run-local.ps1` directly — `start.ps1` just wraps both so you don't have to remember which command goes with which mode.
 
 ---
 

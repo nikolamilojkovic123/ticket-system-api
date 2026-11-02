@@ -6,4 +6,5 @@ public interface INotificationService
     Task NotifyTicketUpdatedAsync(Guid ticketId, string ticketTitle, Guid assigneeId, CancellationToken ct = default);
     Task NotifyCommentAddedAsync(long caseId, CommentDto comment, CancellationToken ct = default);
     Task NotifyCommentDeletedAsync(long caseId, int commentId, CancellationToken ct = default);
+    Task NotifyTicketHistoryUpdatedAsync(Guid ticketId, CancellationToken ct = default);
 }

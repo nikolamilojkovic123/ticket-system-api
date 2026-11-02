@@ -7,6 +7,7 @@ namespace TicketSystem.Domain.TicketManagment.Entities;
 public sealed class Ticket
 {
     private readonly List<TicketComment> _comments = new();
+    private readonly List<TicketHistory> _pendingHistory = new();
 
     public Guid Id { get; private set; }
     public string Title { get; private set; }
@@ -23,13 +24,17 @@ public sealed class Ticket
     public double? SeverityScore { get; private set; }
     public string? EmbeddingJson { get; private set; }
     public IReadOnlyCollection<TicketComment> Comments => _comments.AsReadOnly();
+
+    /// <summary>History entries recorded since the ticket was loaded and not yet persisted.</summary>
+    public IReadOnlyList<TicketHistory> PendingHistory => _pendingHistory.AsReadOnly();
     private Ticket() { }
 
     public Ticket(
         string title,
         string description,
         TicketCategory category = TicketCategory.FeatureRequest,
-        TicketPriority priority = TicketPriority.Low)
+        TicketPriority priority = TicketPriority.Low,
+        string? createdBy = null)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Title is required.", nameof(title));
@@ -44,31 +49,77 @@ public sealed class Ticket
         Priority = priority;
         Status = TicketStatus.Open;
         CreatedAt = DateTime.UtcNow;
+
+        _pendingHistory.Add(new TicketHistory(Id, TicketHistoryFields.Created, null, title, createdBy ?? TicketHistoryFields.SystemUser));
     }
 
-    public void AssignTo(Guid? userId)
+    /// <summary>
+    /// Assigns the ticket. Assigning to a (new) user also moves the ticket to InProgress.
+    /// </summary>
+    /// <param name="assigneeName">Display name of the new assignee, stored in the history.</param>
+    public void AssignTo(Guid? userId, string? assigneeName = null, string? changedBy = null)
     {
+        if (userId == AssigneeId)
+            return;
+
+        string? previousName = Assignee?.FullName;
+
         AssigneeId = userId;
-        Status = TicketStatus.InProgress;
+        UpdatedAt = DateTime.UtcNow;
+        Record(TicketHistoryFields.Assignee, previousName, userId.HasValue ? assigneeName : null, changedBy);
+
+        if (userId.HasValue)
+            ChangeStatus(TicketStatus.InProgress, changedBy);
     }
 
-    public void ChangeStatus(TicketStatus newStatus)
+    public void ChangeStatus(TicketStatus newStatus, string? changedBy = null)
     {
+        Record(TicketHistoryFields.Status, Status.ToString(), newStatus.ToString(), changedBy);
         Status = newStatus;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void ChangePriority(TicketPriority priority)
+    public void ChangePriority(TicketPriority priority, string? changedBy = null)
     {
+        Record(TicketHistoryFields.Priority, Priority.ToString(), priority.ToString(), changedBy);
         Priority = priority;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Update(string title, string description)
+    public void Update(string title, string description, string? changedBy = null)
     {
+        Record(TicketHistoryFields.Title, Title, title, changedBy);
+        Record(TicketHistoryFields.Description, Description, description, changedBy);
         Title = title;
         Description = description;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>Clears the pending history once the repository has persisted it.</summary>
+    public void ClearPendingHistory() => _pendingHistory.Clear();
+
+    /// <summary>
+    /// Adds a history entry for a real change. Several changes of the same field before saving
+    /// collapse into one entry (first old value -> last new value), and drop out if they cancel out.
+    /// </summary>
+    private void Record(string field, string? oldValue, string? newValue, string? changedBy)
+    {
+        TicketHistory? pending = _pendingHistory.FirstOrDefault(h => h.Field == field);
+
+        if (pending is not null)
+        {
+            pending.ReplaceNewValue(newValue);
+
+            if (pending.OldValue == pending.NewValue)
+                _pendingHistory.Remove(pending);
+
+            return;
+        }
+
+        if (oldValue == newValue)
+            return;
+
+        _pendingHistory.Add(new TicketHistory(Id, field, oldValue, newValue, changedBy ?? TicketHistoryFields.SystemUser));
     }
 
     public void ApplyAiAnalysis(string summary, IEnumerable<string>? keywords, double severityScore)

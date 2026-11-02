@@ -20,4 +20,6 @@ public interface ITicketRepository
     CancellationToken ct);
     Task AddCommentAsync(TicketComment comment, CancellationToken ct);
     Task<List<TicketComment>> GetCommentsAsync(Guid ticketId, CancellationToken ct);
+    Task<bool> ExistsAsync(Guid ticketId, CancellationToken ct);
+    Task<List<TicketHistory>> GetHistoryAsync(Guid ticketId, CancellationToken ct);
 }

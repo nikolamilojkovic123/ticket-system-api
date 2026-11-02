@@ -193,6 +193,40 @@ namespace TicketSystem.Infrastructure.Database.Migrations
                     b.ToTable("TicketComments", (string)null);
                 });
 
+            modelBuilder.Entity("TicketSystem.Domain.TicketManagment.Entities.TicketHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Field")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId", "ChangedAt");
+
+                    b.ToTable("TicketHistory", (string)null);
+                });
+
             modelBuilder.Entity("TicketSystem.Domain.UserManagment.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -291,6 +325,15 @@ namespace TicketSystem.Infrastructure.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("TicketSystem.Domain.TicketManagment.Entities.TicketHistory", b =>
+                {
+                    b.HasOne("TicketSystem.Domain.TicketManagment.Entities.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TicketSystem.Domain.ConversationManagement.Entities.Conversation", b =>

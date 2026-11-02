@@ -25,4 +25,9 @@ internal sealed class NotificationService(IHubContext<TicketHub> hubContext) : I
         => hubContext.Clients
             .Group($"Ticket-{caseId}")
             .SendAsync("CommentDeleted", caseId, commentId, ct);
+
+    // Sent to everyone: anyone with the ticket open should see its timeline refresh.
+    public Task NotifyTicketHistoryUpdatedAsync(Guid ticketId, CancellationToken ct = default)
+        => hubContext.Clients.All
+            .SendAsync("TicketHistoryUpdated", ticketId.ToString(), ct);
 }

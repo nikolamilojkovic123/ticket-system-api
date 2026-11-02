@@ -8,10 +8,12 @@ public sealed class UpdateTicketCommand : IRequest<Result<UpdateTicketResponse>>
 {
     public Guid Id { get; init; }
     public CreateTicketRequest Data { get; init; }
+    public string? ChangedBy { get; init; }
 
-    public UpdateTicketCommand(Guid id, CreateTicketRequest data)
+    public UpdateTicketCommand(Guid id, CreateTicketRequest data, string? changedBy = null)
     {
         Id = id;
         Data = data;
+        ChangedBy = changedBy;
     }
 }

@@ -23,6 +23,8 @@ internal sealed class TicketEntityConfiguration
              .HasForeignKey(c => c.TicketId)
              .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Ignore(t => t.PendingHistory);
+
         builder.Navigation(t => t.Comments)
              .HasField("_comments")
              .UsePropertyAccessMode(PropertyAccessMode.Field);

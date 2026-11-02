@@ -8,11 +8,14 @@ using TicketSystem.Core;
 using TicketSystem.Domain.TicketManagment.Entities;
 using TicketSystem.Domain.TicketManagment.Enums;
 using TicketSystem.Domain.TicketManagment.Repositories;
+using TicketSystem.Domain.UserManagment.Entities;
+using TicketSystem.Domain.UserManagment.Repositories;
 
 namespace TicketSystem.Application.Features.Tickets.Commands.UpdateTicket;
 
 public sealed class UpdateTicketRequestHandler(
     ITicketRepository ticketRepository,
+    IUserRepository userRepository,
     IEventBus eventBus,
     INotificationService notificationService,
     IEmailService emailService)
@@ -34,12 +37,24 @@ public sealed class UpdateTicketRequestHandler(
         Guid? previousAssigneeId = entity.AssigneeId;
         TicketStatus previousStatus = entity.Status;
 
-        entity.Update(request.Data.Title, request.Data.Description);
-        entity.ChangePriority(request.Data.Priority);
-        entity.AssignTo(request.Data.UserId);
-        entity.ChangeStatus(request.Data.Status);
+        string? assigneeName = null;
+        if (request.Data.UserId.HasValue && request.Data.UserId != previousAssigneeId)
+        {
+            User? assignee = await userRepository.GetUserByIdAsync(request.Data.UserId.Value, ct);
+            assigneeName = assignee?.FullName;
+        }
+
+        entity.Update(request.Data.Title, request.Data.Description, request.ChangedBy);
+        entity.ChangePriority(request.Data.Priority, request.ChangedBy);
+        entity.AssignTo(request.Data.UserId, assigneeName, request.ChangedBy);
+        entity.ChangeStatus(request.Data.Status, request.ChangedBy);
+
+        bool historyChanged = entity.PendingHistory.Count > 0;
 
         await ticketRepository.UpdateAsync(entity, ct);
+
+        if (historyChanged)
+            await notificationService.NotifyTicketHistoryUpdatedAsync(entity.Id, ct);
         await eventBus.PublishAsync(new TicketCreatedEvent { TicketId = entity.Id }, ct);
 
         bool assigneeChanged = false;

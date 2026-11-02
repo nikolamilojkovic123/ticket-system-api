@@ -12,7 +12,7 @@ internal sealed class TicketRepository(ApplicationDbContext dbContext) : ITicket
     public async Task CreateTicketAsync(Ticket ticket, CancellationToken cancellationToken)
     {
         await _dbContext.Tickets.AddAsync(ticket, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await SaveWithHistoryAsync(ticket, cancellationToken);
     }
 
     public async Task<ICollection<Ticket>> GetAllTicketsAsync(CancellationToken cancellationToken)
@@ -130,9 +130,36 @@ internal sealed class TicketRepository(ApplicationDbContext dbContext) : ITicket
 
     public async Task UpdateAsync(Ticket ticket, CancellationToken ct)
     {
-        _dbContext.Tickets.Update(ticket);
-        await _dbContext.SaveChangesAsync(ct);
+        // A ticket loaded through this context is already tracked; Update() would also mark its
+        // navigations as Modified, so only attach tickets that come from elsewhere.
+        if (_dbContext.Entry(ticket).State == EntityState.Detached)
+            _dbContext.Tickets.Update(ticket);
+
+        await SaveWithHistoryAsync(ticket, ct);
     }
+
+    private async Task SaveWithHistoryAsync(Ticket ticket, CancellationToken ct)
+    {
+        if (ticket.PendingHistory.Count > 0)
+            await _dbContext.TicketHistory.AddRangeAsync(ticket.PendingHistory, ct);
+
+        await _dbContext.SaveChangesAsync(ct);
+        ticket.ClearPendingHistory();
+    }
+
+    public Task<bool> ExistsAsync(Guid ticketId, CancellationToken ct)
+    =>
+        _dbContext.Tickets.AnyAsync(t => t.Id == ticketId, ct);
+
+    public async Task<List<TicketHistory>> GetHistoryAsync(Guid ticketId, CancellationToken ct)
+    =>
+        await _dbContext.TicketHistory
+            .AsNoTracking()
+            .Where(h => h.TicketId == ticketId)
+            .OrderByDescending(h => h.ChangedAt)
+            // Entries written in the same save share a timestamp; keep "Created" as the oldest one.
+            .ThenBy(h => h.Field == TicketHistoryFields.Created ? 1 : 0)
+            .ToListAsync(ct);
 
     public async Task<(ICollection<Ticket> Items, int TotalCount)> SearchByKeywordAsync(string query, int page, int pageSize, CancellationToken ct)
     {

@@ -14,6 +14,7 @@ public sealed class ApplicationDbContext : DbContext
 
     public DbSet<Ticket> Tickets { get; set; }
     public DbSet<TicketComment> TicketComments { get; set; }
+    public DbSet<TicketHistory> TicketHistory { get; set; }
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Document> Documents { get; set; }

@@ -7,11 +7,14 @@ using TicketSystem.Application.Services.Email;
 using TicketSystem.Core;
 using TicketSystem.Domain.TicketManagment.Entities;
 using TicketSystem.Domain.TicketManagment.Repositories;
+using TicketSystem.Domain.UserManagment.Entities;
+using TicketSystem.Domain.UserManagment.Repositories;
 
 namespace TicketSystem.Application.Features.Tickets.Commands.CreateTicket;
 
 public sealed class CreateTicketRequestHandler(
     ITicketRepository ticketRepository,
+    IUserRepository userRepository,
     IEventBus eventBus,
     IEmailService emailService,
     IOptions<EmailSettings> emailSettings)
@@ -33,11 +36,15 @@ public sealed class CreateTicketRequestHandler(
                 request.Title,
                 request.Description,
                 request.Category,
-                request.Priority
+                request.Priority,
+                request.CreatedBy
             );
 
         if (request.UserId.HasValue)
-            t.AssignTo(request.UserId.Value);
+        {
+            User? assignee = await userRepository.GetUserByIdAsync(request.UserId.Value, ct);
+            t.AssignTo(request.UserId.Value, assignee?.FullName, request.CreatedBy);
+        }
 
         await _ticketRepository.CreateTicketAsync(t, ct);
 

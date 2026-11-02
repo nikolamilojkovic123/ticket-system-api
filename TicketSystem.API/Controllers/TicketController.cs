@@ -12,6 +12,7 @@ using TicketSystem.Application.Features.Tickets.Queries.GetAllTicketsQuery;
 using TicketSystem.Application.Features.Tickets.Queries.GetByIdQuery;
 using TicketSystem.Application.Features.Tickets.Queries.GetFilteredTickets;
 using TicketSystem.Application.Features.Tickets.Queries.GetTicketComments;
+using TicketSystem.Application.Features.Tickets.Queries.GetTicketHistory;
 using TicketSystem.Application.Features.Tickets.Queries.SearchTickets;
 using TicketSystem.Application.Mediator;
 using TicketSystem.Core;
@@ -29,6 +30,7 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateTicketAsync([FromBody] CreateTicketRequest createTicketRequest, CancellationToken cancellationToken)
     {
+        createTicketRequest.CreatedBy = CurrentUserName;
         Result<CreateTicketResponse> result = await _mediator.Send(createTicketRequest, cancellationToken);
 
         return result.ActionResult;
@@ -84,7 +86,7 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
     public async Task<IActionResult> UpdateTicketAsync(Guid id,
         [FromBody] CreateTicketRequest createTicketRequest, CancellationToken cancellationToken)
     {
-        Result<UpdateTicketResponse> result = await _mediator.Send(new UpdateTicketCommand(id, createTicketRequest), cancellationToken);
+        Result<UpdateTicketResponse> result = await _mediator.Send(new UpdateTicketCommand(id, createTicketRequest, CurrentUserName), cancellationToken);
         return result.ActionResult;
     }
 
@@ -126,12 +128,24 @@ public class TicketController(SimpleMediator simpleMediator) : ControllerBase
 
         return result.ActionResult;
     }
+    [HttpGet("{id:guid}/history")]
+    public async Task<IActionResult> GetTicketHistoryAsync(Guid id, CancellationToken cancellationToken)
+    {
+        Result<ICollection<TicketHistoryResponse>> result = await _mediator.Send(
+            new GetTicketHistoryQuery(id), cancellationToken);
+
+        return result.ActionResult;
+    }
+
+    private string CurrentUserName =>
+        User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue(ClaimTypes.Email) ?? "Unknown";
+
     [HttpPut("update-status/{id:guid}")]
     public async Task<IActionResult> UpdateTicketStatusAsync(Guid id,
         [FromBody] UpdateStatusRequest request, CancellationToken cancellationToken)
     {
         Result<UpdateTicketStatusResponse> result = await _mediator.Send(
-            new UpdateTicketStatusCommand(id, request.Status), cancellationToken);
+            new UpdateTicketStatusCommand(id, request.Status, CurrentUserName), cancellationToken);
         return result.ActionResult;
     }
 }
